@@ -1,8 +1,8 @@
 # Cold Chain Monitor
 
-Projekt edukacyjny do monitorowania temperatury powietrza w chłodniach firmy cateringowej.
+Projekt monitorowania temperatury powietrza w chłodniach firmy cateringowej.
 
-## Scenariusz
+## Opis
 
 - `cold-01` przechowuje partię `CAT-001`: 40 porcji kurczaka z ryżem i warzywami.
 - `cold-02` przechowuje partię `CAT-002`: 35 porcji makaronu z sosem pomidorowym.
