@@ -41,3 +41,17 @@ Projekt edukacyjny do monitorowania temperatury powietrza w chłodniach firmy ca
 | `cold-02`, 4°C | Pomiar jest widoczny w InfluxDB w buckecie `telemetry`. |
 | `cold-02`, 8°C | Pomiar jest widoczny w InfluxDB. PostgreSQL zapisał przekroczenie progu 6°C dla partii `CAT-002`. |
 | `cold-02`, temperatura `awaria` | n8n odrzucił wiadomość w kroku walidacji z błędem „Temperatura musi być liczbą”. |
+
+
+## Demo przegrzania chłodni
+
+1. Symulator wysyła pomiar 8°C dla `cold-02` przez MQTT.
+2. n8n sprawdza wiadomość i zapisuje temperaturę w InfluxDB.
+3. PostgreSQL przypisuje przekroczenie progu 6°C do partii `CAT-002`,
+   obejmującej 35 porcji makaronu z sosem pomidorowym.
+4. Grafana pokazuje stan **Firing**. Po wysłaniu 4°C alert wraca do
+   **Normal**, a przekroczenie pozostaje w raporcie.
+
+![Dashboard z temperaturami chłodni i raportem partii](docs/dashboard.png)
+
+[Alert przy 8°C](docs/alert-firing.png) · [Powrót do normy przy 4°C](docs/alert-normal.png)
