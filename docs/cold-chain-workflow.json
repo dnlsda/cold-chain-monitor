@@ -1,0 +1,145 @@
+{
+  "name": "Cold Chain - pomiary",
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "catering/cold-chain/temperature",
+        "options": {
+          "jsonParseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        -320
+      ],
+      "id": "3f25debf-906c-4932-94ef-878bc666f210",
+      "name": "MQTT Trigger",
+      "credentials": {
+        "mqtt": {
+          "id": "hhNyPJQEcSN8ag2I",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { room_id, celsius, measured_at_ms } = $json.message ?? {};\n\nif (room_id !== 'cold-01' && room_id !== 'cold-02') {\n  throw new Error('Nieznana chłodnia');\n}\n\nif (!Number.isFinite(celsius)) {\n  throw new Error('Temperatura musi być liczbą');\n}\n\nif (\n  !Number.isSafeInteger(measured_at_ms) ||\n  measured_at_ms <= 0 ||\n  measured_at_ms > 9_223_372_036_854\n) {\n  throw new Error('Nieprawidłowy czas pomiaru');\n}\n\nreturn {\n  json: {\n    room_id,\n    celsius,\n    measured_at: new Date(measured_at_ms).toISOString(),\n    line: `temperature,room_id=${room_id} celsius=${celsius} ${measured_at_ms}`,\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        -320
+      ],
+      "id": "98380272-85d8-484c-a62b-feb255aa7647",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://influxdb:8086/api/v2/write?org=catering&bucket=telemetry&precision=ms",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ $json.line }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -320
+      ],
+      "id": "f56f30e0-c2c8-41d3-818c-555e9a389b2e",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Bf2LStb7ic71TZUk",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH measurement AS (\n    SELECT $1::text AS room_id,\n           $2::timestamptz AS measured_at,\n           $3::double precision AS temperature_c,\n           6.0::double precision AS threshold_c\n)\nINSERT INTO temperature_excursions (\n    room_id, measured_at, batch_id, temperature_c, threshold_c\n)\nSELECT m.room_id,\n       m.measured_at,\n       (\n           SELECT s.batch_id\n           FROM batch_storage AS s\n           WHERE s.room_id = m.room_id\n             AND s.stored_at <= m.measured_at\n             AND (s.removed_at IS NULL OR s.removed_at > m.measured_at)\n           ORDER BY s.stored_at DESC\n           LIMIT 1\n       ),\n       m.temperature_c,\n       m.threshold_c\nFROM measurement AS m\nWHERE m.temperature_c > m.threshold_c\nON CONFLICT (room_id, measured_at) DO NOTHING\nRETURNING room_id, measured_at, batch_id, temperature_c, threshold_c;",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Code in JavaScript').item.json.room_id,\n  $('Code in JavaScript').item.json.measured_at,\n  $('Code in JavaScript').item.json.celsius\n] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        256,
+        -320
+      ],
+      "id": "28c3203d-782c-46d7-b218-f91a278871a1",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "5T8tjXA6xa9KE5if",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4707a39b-c59e-4779-9a14-3aa3a5799875",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3e5d8c3cb04b5901891d3ee7fe91403b03915eabbdf8e3abc5813ede7d466a5d"
+  },
+  "nodeGroups": [],
+  "id": "xryWdM2FOLzDUO9a",
+  "tags": []
+}
