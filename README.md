@@ -34,3 +34,10 @@ Projekt edukacyjny do monitorowania temperatury powietrza w chłodniach firmy ca
 
 4\. Grafana pokazuje wykres temperatur, alert i raport przekroczeń według partii.
 
+## Testy przepływu danych
+
+| Próba | Wynik |
+|---|---|
+| `cold-02`, 4°C | Pomiar jest widoczny w InfluxDB w buckecie `telemetry`. |
+| `cold-02`, 8°C | Pomiar jest widoczny w InfluxDB. PostgreSQL zapisał przekroczenie progu 6°C dla partii `CAT-002`. |
+| `cold-02`, temperatura `awaria` | n8n odrzucił wiadomość w kroku walidacji z błędem „Temperatura musi być liczbą”. |

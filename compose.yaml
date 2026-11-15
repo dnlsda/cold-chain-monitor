@@ -1,0 +1,43 @@
+name: cold-chain-monitor
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: cold_chain
+      POSTGRES_USER: cold_chain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  influxdb:
+    image: influxdb:2
+    ports:
+      - "127.0.0.1:18086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "127.0.0.1:15678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "127.0.0.1:13000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  n8n_data:
+  grafana_data:
